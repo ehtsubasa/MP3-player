@@ -74,7 +74,7 @@ export const login = async (req, res) => {
 
 export const logout = async (req, res) => {
     try {
-        res.cookie('Cookie', '', { maxAge: 0, httpOnly: true, sameSite: 'strict' });
+        res.cookie('jwt', '', { maxAge: 0, httpOnly: true, sameSite: 'strict' });
         res.status(200).json({})
     } catch (error) {
         console.log(error)

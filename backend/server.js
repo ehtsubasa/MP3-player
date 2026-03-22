@@ -21,7 +21,7 @@ app.use('/api/playlists', playlistRouters);
 
 // database connect
 const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     connectToMongoDB();
     console.log(`server is running at ${PORT}`)
 })
