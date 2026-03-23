@@ -216,7 +216,7 @@ export const streamSong = async (req, res) => {
     const { Readable } = await import('stream');
     Readable.fromWeb(upstream.body).pipe(res);
   } catch (err) {
-    console.error('Stream error:', err.message);
+    console.error('Stream error:', err);
     if (!res.headersSent) res.status(500).json({ message: 'Failed to stream song' });
   }
 };
