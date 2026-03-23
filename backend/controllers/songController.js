@@ -51,11 +51,14 @@ async function getYtDlp() {
 
 // Write YouTube cookies from env var to a temp file (needed on Render)
 const COOKIES_PATH = '/tmp/yt-cookies.txt';
-if (process.env.YOUTUBE_COOKIES) {
-  // Render escapes newlines as \n in env vars — unescape them
+if (process.env.YOUTUBE_COOKIES_B64) {
+  const content = Buffer.from(process.env.YOUTUBE_COOKIES_B64, 'base64').toString('utf-8');
+  fs.writeFileSync(COOKIES_PATH, content);
+  console.log(`yt-cookies.txt written from base64 (${content.split('\n').length} lines)`);
+} else if (process.env.YOUTUBE_COOKIES) {
   const content = process.env.YOUTUBE_COOKIES.replace(/\\n/g, '\n');
   fs.writeFileSync(COOKIES_PATH, content);
-  console.log(`yt-cookies.txt written (${content.split('\n').length} lines)`);
+  console.log(`yt-cookies.txt written from plain text (${content.split('\n').length} lines)`);
 }
 
 // warm up on startup
