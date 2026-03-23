@@ -45,7 +45,10 @@ async function getYtDlp() {
 // Write YouTube cookies from env var to a temp file (needed on Render)
 const COOKIES_PATH = '/tmp/yt-cookies.txt';
 if (process.env.YOUTUBE_COOKIES) {
-  fs.writeFileSync(COOKIES_PATH, process.env.YOUTUBE_COOKIES);
+  // Render escapes newlines as \n in env vars — unescape them
+  const content = process.env.YOUTUBE_COOKIES.replace(/\\n/g, '\n');
+  fs.writeFileSync(COOKIES_PATH, content);
+  console.log(`yt-cookies.txt written (${content.split('\n').length} lines)`);
 }
 
 // warm up on startup
