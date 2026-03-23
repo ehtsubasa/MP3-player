@@ -51,14 +51,18 @@ async function getYtDlp() {
 
 // Write YouTube cookies from env var to a temp file (needed on Render)
 const COOKIES_PATH = '/tmp/yt-cookies.txt';
+const NETSCAPE_HEADER = '# Netscape HTTP Cookie File\n';
+
+function writeCookies(raw) {
+  const content = raw.startsWith('# Netscape') ? raw : NETSCAPE_HEADER + raw;
+  fs.writeFileSync(COOKIES_PATH, content);
+  console.log(`yt-cookies.txt written (${content.split('\n').length} lines)`);
+}
+
 if (process.env.YOUTUBE_COOKIES_B64) {
-  const content = Buffer.from(process.env.YOUTUBE_COOKIES_B64, 'base64').toString('utf-8');
-  fs.writeFileSync(COOKIES_PATH, content);
-  console.log(`yt-cookies.txt written from base64 (${content.split('\n').length} lines)`);
+  writeCookies(Buffer.from(process.env.YOUTUBE_COOKIES_B64, 'base64').toString('utf-8'));
 } else if (process.env.YOUTUBE_COOKIES) {
-  const content = process.env.YOUTUBE_COOKIES.replace(/\\n/g, '\n');
-  fs.writeFileSync(COOKIES_PATH, content);
-  console.log(`yt-cookies.txt written from plain text (${content.split('\n').length} lines)`);
+  writeCookies(process.env.YOUTUBE_COOKIES.replace(/\\n/g, '\n'));
 }
 
 // warm up on startup
