@@ -21,12 +21,19 @@ async function getStreamUrl(youtubeId) {
   if (cached && Date.now() < cached.expiresAt) return cached.url;
 
   const yt = await getYtDlp();
-  const args = ['-f', '140/bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best', '--get-url'];
+
+  const args = [
+    '-f', 'bestaudio/best',  // simplest — let yt-dlp pick whatever works
+    '--no-playlist',
+    '--get-url',
+  ];
+
   if (fs.existsSync(COOKIES_PATH)) args.push('--cookies', COOKIES_PATH);
   args.push(`https://www.youtube.com/watch?v=${youtubeId}`);
-  const url = (await yt.execPromise(args)).trim();
 
+  const url = (await yt.execPromise(args)).trim();
   if (!url) throw new Error('No stream URL returned');
+
   urlCache.set(youtubeId, { url, expiresAt: Date.now() + CACHE_TTL_MS });
   return url;
 }
