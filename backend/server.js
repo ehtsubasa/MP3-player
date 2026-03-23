@@ -17,17 +17,18 @@ app.use(cookieParser());
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
+const __dirname = path.resolve();
+
 app.use('/api/auth', authRouters);
 app.use('/api/songs', songRouters);
 app.use('/api/playlists', playlistRouters);
 
 // serve React in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(process.cwd(), 'frontend/dist')));
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'frontend/dist/index.html'));
-  });
-}
+app.use(express.static(path.join(__dirname, "/frontend/dist")));
+
+app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "frontend", "dist", "index.html"));
+});
 
 // database connect
 const PORT = process.env.PORT || 8000;
