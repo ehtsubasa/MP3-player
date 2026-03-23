@@ -3,6 +3,7 @@ import {Routes, Route} from 'react-router-dom';
 import {Toaster} from 'react-hot-toast';
 import { Navigate } from 'react-router-dom';
 import { useAuthContext } from './context/AuthContext';
+import { usePlayer } from './context/PlayerContext';
 
 import Home from './pages/main/Home';
 import Login from './pages/authentication/Login';
@@ -10,6 +11,22 @@ import Signup from './pages/authentication/Signup';
 import Playlist from './pages/main/Playlist';
 import Playing from './pages/main/Playing';
 import Search from './pages/main/Search';
+
+function PersistentAudio() {
+  const { audioRef, currentSong, isLooping, playNext } = usePlayer();
+  const streamUrl = currentSong ? `/api/songs/${currentSong._id}/stream` : null;
+  if (!streamUrl) return null;
+  return (
+    <audio
+      ref={audioRef}
+      key={currentSong._id}
+      src={streamUrl}
+      loop={isLooping}
+      onEnded={!isLooping ? playNext : undefined}
+      className='hidden'
+    />
+  );
+}
 
 function App() {
 
@@ -25,6 +42,7 @@ function App() {
 
   return (
   <div>
+    <PersistentAudio />
     <Routes>
       <Route path='/'  element={authUser ? <Home /> : <Navigate to='/login' /> } />
       <Route path='/login'  element={authUser ? <Navigate to='/' /> : <Login />} />

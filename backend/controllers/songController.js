@@ -1,8 +1,30 @@
 // backend/controllers/song.controller.js
 import Song from '../models/songModel.js';
-import ytdl from '@distube/ytdl-core';
+import YTDlpWrapPkg from 'yt-dlp-wrap';
+const YTDlpWrap = YTDlpWrapPkg.default;
+import path from 'path';
+import fs from 'fs';
 
 const OEMBED_URL = 'https://www.youtube.com/oembed';
+
+// Use /tmp so it's always writable (works on Render too)
+const BIN_PATH = path.join('/tmp', process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
+
+let ytDlp = null;
+
+async function getYtDlp() {
+  if (ytDlp) return ytDlp;
+  if (!fs.existsSync(BIN_PATH)) {
+    console.log('Downloading yt-dlp binary...');
+    await YTDlpWrap.downloadFromGithub(BIN_PATH);
+    console.log('yt-dlp ready.');
+  }
+  ytDlp = new YTDlpWrap(BIN_PATH);
+  return ytDlp;
+}
+
+// warm up on startup
+getYtDlp().catch(err => console.error('yt-dlp init failed:', err.message));
 
 function extractYoutubeId(url) {
   const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
@@ -125,24 +147,41 @@ export const deleteSong = async (req, res) => {
 };
 
 
-export const getSongStreamUrl = async (req, res) => {
+export const streamSong = async (req, res) => {
   try {
     const song = await Song.findById(req.params.id);
     if (!song) return res.status(404).json({ message: 'Song not found' });
 
-    const url = `https://www.youtube.com/watch?v=${song.youtubeId}`;
-    if (!ytdl.validateURL(url))
-      return res.status(400).json({ message: 'Invalid YouTube URL' });
+    const yt = await getYtDlp();
+    const ytUrl = `https://www.youtube.com/watch?v=${song.youtubeId}`;
 
-    const info = await ytdl.getInfo(url);
-    const format = ytdl.chooseFormat(info.formats, {
-      filter: 'audioonly',
-      quality: 'highestaudio',
-    });
+    const streamUrl = (await yt.execPromise([
+      '-f', 'bestaudio/best',
+      '--get-url',
+      ytUrl,
+    ])).trim();
 
-    res.json({ streamUrl: format.url });
+    if (!streamUrl) throw new Error('No stream URL returned');
+
+    // Forward Range header so seeking works
+    const headers = {};
+    if (req.headers.range) headers['Range'] = req.headers.range;
+
+    const upstream = await fetch(streamUrl, { headers });
+
+    res.status(upstream.status);
+    const ct = upstream.headers.get('content-type');
+    const cl = upstream.headers.get('content-length');
+    const cr = upstream.headers.get('content-range');
+    if (ct) res.setHeader('Content-Type', ct);
+    if (cl) res.setHeader('Content-Length', cl);
+    if (cr) res.setHeader('Content-Range', cr);
+    res.setHeader('Accept-Ranges', 'bytes');
+
+    const { Readable } = await import('stream');
+    Readable.fromWeb(upstream.body).pipe(res);
   } catch (err) {
-    console.error('Stream URL error:', err);
-    res.status(500).json({ message: 'Failed to get stream URL' });
+    console.error('Stream error:', err.message);
+    if (!res.headersSent) res.status(500).json({ message: 'Failed to stream song' });
   }
 };

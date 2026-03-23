@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { usePlayer } from '../context/PlayerContext';
 
 const usePlayerControls = () => {
@@ -7,57 +7,17 @@ const usePlayerControls = () => {
     isPlaying, setIsPlaying,
     isLooping, setIsLooping,
     queueName, playNext, playPrev,
+    audioRef,
   } = usePlayer();
 
-  const playerRef    = useRef(null);
-  const wakeLockRef  = useRef(null);
-  const [streamUrl,     setStreamUrl]     = useState(null);
-  const [loadingStream, setLoadingStream] = useState(false);
-  const [streamError,   setStreamError]   = useState(null);
+  const wakeLockRef = useRef(null);
 
-  // fetch direct audio URL when song changes
-  useEffect(() => {
-    if (!currentSong) {
-      setStreamUrl(null);
-      setStreamError(null);
-      setLoadingStream(false);
-      return;
-    }
-
-    const fetchStreamUrl = async () => {
-      setStreamUrl(null);
-      setStreamError(null);
-      setLoadingStream(true);
-
-      try {
-        const res = await fetch(`/api/songs/${currentSong._id}/stream-url`, {
-          credentials: 'include',
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.message || 'Failed to get stream URL');
-        }
-
-        if (!data.streamUrl) {
-          throw new Error('Song stream URL was not returned by the server');
-        }
-
-        setStreamUrl(data.streamUrl);
-      } catch (err) {
-        console.error('Failed to get stream URL:', err);
-        setStreamError(err.message);
-      } finally {
-        setLoadingStream(false);
-      }
-    };
-    fetchStreamUrl();
-  }, [currentSong?._id]);
+  // stream URL points directly to the proxy endpoint — no fetch needed
+  const streamUrl = currentSong ? `/api/songs/${currentSong._id}/stream` : null;
 
   // play / pause native audio
   useEffect(() => {
-    const audio = playerRef.current;
+    const audio = audioRef.current;
     if (!audio || !streamUrl) return;
     if (isPlaying) {
       audio.play().catch(err => console.log('Play failed:', err));
@@ -122,8 +82,7 @@ const usePlayerControls = () => {
     isLooping, toggleLoop,
     hasPrev, hasNext,
     playPrev, playNext,
-    queueName, playerRef,
-    streamUrl, loadingStream, streamError,
+    queueName,
   };
 };
 

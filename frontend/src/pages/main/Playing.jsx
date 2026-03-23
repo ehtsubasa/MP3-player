@@ -5,11 +5,10 @@ const Playing = () => {
   const {
     currentSong,
     isPlaying, togglePlay,
-    isLooping, toggleLoop,
+
     hasPrev, hasNext,
     playPrev, playNext,
-    queueName, playerRef, 
-    streamUrl, loadingStream, streamError,
+    queueName,
   } = usePlayerControls();
 
   if (!currentSong) {
@@ -39,27 +38,6 @@ const Playing = () => {
           className='w-full aspect-video object-cover rounded-lg bg-gray-900'
         />
       </div>
-
-      {/* hidden audio element */}
-      {streamUrl && (
-        <audio
-          ref={playerRef}
-          key={streamUrl}
-          src={streamUrl}
-          autoPlay
-          loop={isLooping}
-          onEnded={!isLooping ? playNext : undefined}
-          className='hidden'
-        />
-      )}
-
-      {loadingStream && (
-        <p className='px-6 mt-4 text-sm text-gray-400'>Loading audio...</p>
-      )}
-
-      {streamError && (
-        <p className='px-6 mt-4 text-sm text-red-400'>{streamError}</p>
-      )}
 
       {/* song info */}
       <div className='px-6 mt-6'>

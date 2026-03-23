@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useRef } from 'react';
 
 export const PlayerContext = createContext();
 
@@ -17,6 +17,7 @@ export const PlayerContextProvider = ({ children }) => {
   const [isPlaying,    setIsPlaying]      = useState(false);
   const [isLooping,    setIsLooping]      = useState(false);
   const [queueName,    setQueueName]      = useState('');
+  const audioRef = useRef(null);
 
   const playSong = (songs, index, name = 'All Songs') => {
     setCurrentQueue(songs);
@@ -45,6 +46,7 @@ export const PlayerContextProvider = ({ children }) => {
       isPlaying, setIsPlaying,
       isLooping, setIsLooping,
       queueName, playSong, playNext, playPrev,
+      audioRef,
     }}>
       {children}
     </PlayerContext.Provider>
