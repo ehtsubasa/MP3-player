@@ -2,7 +2,7 @@ import './App.css'
 import {Routes, Route} from 'react-router-dom';
 import {Toaster} from 'react-hot-toast';
 import { Navigate } from 'react-router-dom';
-import { UseAuthContext } from './context/AuthContext';
+import { useAuthContext } from './context/AuthContext';
 
 import Home from './pages/main/Home';
 import Login from './pages/authentication/Login';
@@ -13,7 +13,15 @@ import Search from './pages/main/Search';
 
 function App() {
 
-  const { authUser } = UseAuthContext();
+  const { authUser, checkingAuth } = useAuthContext();
+
+  if (checkingAuth) {
+    return (
+      <div className='min-h-screen bg-black text-white flex items-center justify-center'>
+        Checking session...
+      </div>
+    );
+  }
 
   return (
   <div>

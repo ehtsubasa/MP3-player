@@ -1,5 +1,6 @@
 // backend/controllers/song.controller.js
 import Song from '../models/songModel.js';
+import ytdl from '@distube/ytdl-core';
 
 const OEMBED_URL = 'https://www.youtube.com/oembed';
 
@@ -22,10 +23,10 @@ function extractYoutubeId(url) {
  */
 export const getAllSongs = async (req, res) => {
   try {
-    const songs = await Song.find().select('title thumbnailUrl youtubeId').sort({ createdAt: -1 });
-
+    const songs = await Song.find()
+      .select('title thumbnailUrl youtubeId')
+      .sort({ createdAt: -1 });
     res.json(songs);
-
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch songs' });
   }
@@ -47,12 +48,8 @@ export const getAllSongs = async (req, res) => {
 export const getSong = async (req, res) => {
   try {
     const song = await Song.findById(req.params.id);
-
-    if (!song) 
-        return res.status(404).json({ message: 'Song not found' });
-
+    if (!song) return res.status(404).json({ message: 'Song not found' });
     res.json(song);
-
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch song' });
   }
@@ -77,24 +74,21 @@ export const getSong = async (req, res) => {
 export const addSong = async (req, res) => {
   try {
     const { url } = req.body;
-
     const youtubeId = extractYoutubeId(url);
-
-    if (!youtubeId) 
-        return res.status(400).json({ message: 'Invalid YouTube URL' });
+    if (!youtubeId)
+      return res.status(400).json({ message: 'Invalid YouTube URL' });
 
     const existing = await Song.findOne({ youtubeId });
+    if (existing)
+      return res.status(409).json({ message: 'Song already exists', song: existing });
 
-    if (existing) 
-        return res.status(409).json({ message: 'Song already exists', song: existing });
-
-    const oembedRes = await fetch(`${OEMBED_URL}?url=https://www.youtube.com/watch?v=${youtubeId}&format=json`);
-
-    if (!oembedRes.ok) 
-        return res.status(400).json({ message: 'Could not fetch video info' });
+    const oembedRes = await fetch(
+      `${OEMBED_URL}?url=https://www.youtube.com/watch?v=${youtubeId}&format=json`
+    );
+    if (!oembedRes.ok)
+      return res.status(400).json({ message: 'Could not fetch video info' });
 
     const meta = await oembedRes.json();
-
     const song = await Song.create({
       youtubeId,
       title: meta.title,
@@ -102,7 +96,6 @@ export const addSong = async (req, res) => {
     });
 
     res.status(201).json(song);
-
   } catch (err) {
     res.status(500).json({ message: 'Failed to add song' });
   }
@@ -124,13 +117,32 @@ export const addSong = async (req, res) => {
 export const deleteSong = async (req, res) => {
   try {
     const song = await Song.findByIdAndDelete(req.params.id);
-
-    if (!song) 
-        return res.status(404).json({ message: 'Song not found' });
-
+    if (!song) return res.status(404).json({ message: 'Song not found' });
     res.json({ message: 'Song deleted' });
-
   } catch (err) {
     res.status(500).json({ message: 'Failed to delete song' });
+  }
+};
+
+
+export const getSongStreamUrl = async (req, res) => {
+  try {
+    const song = await Song.findById(req.params.id);
+    if (!song) return res.status(404).json({ message: 'Song not found' });
+
+    const url = `https://www.youtube.com/watch?v=${song.youtubeId}`;
+    if (!ytdl.validateURL(url))
+      return res.status(400).json({ message: 'Invalid YouTube URL' });
+
+    const info = await ytdl.getInfo(url);
+    const format = ytdl.chooseFormat(info.formats, {
+      filter: 'audioonly',
+      quality: 'highestaudio',
+    });
+
+    res.json({ streamUrl: format.url });
+  } catch (err) {
+    console.error('Stream URL error:', err);
+    res.status(500).json({ message: 'Failed to get stream URL' });
   }
 };

@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { UseAuthContext } from '../context/AuthContext';
+import { useAuthContext } from '../context/AuthContext';
 
 const useSignup = () => {
     const [loading, setLoading] = useState(false);
-    const { setAuthUser } = UseAuthContext();
+    const { setAuthUser } = useAuthContext();
 
     const signup = async({username, password, confirmPassword}) => {
         const success = handleInputErrors({username, password, confirmPassword});
