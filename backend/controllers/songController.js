@@ -21,11 +21,10 @@ async function getStreamUrl(youtubeId) {
   if (cached && Date.now() < cached.expiresAt) return cached.url;
 
   const yt = await getYtDlp();
-  const url = (await yt.execPromise([
-    '-f', 'bestaudio/best',
-    '--get-url',
-    `https://www.youtube.com/watch?v=${youtubeId}`,
-  ])).trim();
+  const args = ['-f', 'bestaudio/best', '--get-url'];
+  if (fs.existsSync(COOKIES_PATH)) args.push('--cookies', COOKIES_PATH);
+  args.push(`https://www.youtube.com/watch?v=${youtubeId}`);
+  const url = (await yt.execPromise(args)).trim();
 
   if (!url) throw new Error('No stream URL returned');
   urlCache.set(youtubeId, { url, expiresAt: Date.now() + CACHE_TTL_MS });
@@ -41,6 +40,12 @@ async function getYtDlp() {
   }
   ytDlp = new YTDlpWrap(BIN_PATH);
   return ytDlp;
+}
+
+// Write YouTube cookies from env var to a temp file (needed on Render)
+const COOKIES_PATH = '/tmp/yt-cookies.txt';
+if (process.env.YOUTUBE_COOKIES) {
+  fs.writeFileSync(COOKIES_PATH, process.env.YOUTUBE_COOKIES);
 }
 
 // warm up on startup
