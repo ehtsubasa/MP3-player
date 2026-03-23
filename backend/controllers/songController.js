@@ -163,23 +163,7 @@ export const streamSong = async (req, res) => {
 
     if (!streamUrl) throw new Error('No stream URL returned');
 
-    // Forward Range header so seeking works
-    const headers = {};
-    if (req.headers.range) headers['Range'] = req.headers.range;
-
-    const upstream = await fetch(streamUrl, { headers });
-
-    res.status(upstream.status);
-    const ct = upstream.headers.get('content-type');
-    const cl = upstream.headers.get('content-length');
-    const cr = upstream.headers.get('content-range');
-    if (ct) res.setHeader('Content-Type', ct);
-    if (cl) res.setHeader('Content-Length', cl);
-    if (cr) res.setHeader('Content-Range', cr);
-    res.setHeader('Accept-Ranges', 'bytes');
-
-    const { Readable } = await import('stream');
-    Readable.fromWeb(upstream.body).pipe(res);
+    res.redirect(302, streamUrl);
   } catch (err) {
     console.error('Stream error:', err.message);
     if (!res.headersSent) res.status(500).json({ message: 'Failed to stream song' });
