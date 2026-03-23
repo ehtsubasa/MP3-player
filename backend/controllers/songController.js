@@ -28,7 +28,9 @@ async function getStreamUrl(youtubeId) {
     '--get-url',
   ];
 
-  if (fs.existsSync(COOKIES_PATH)) args.push('--cookies', COOKIES_PATH);
+  const cookiesExist = fs.existsSync(COOKIES_PATH);
+  console.log('cookies file exists:', cookiesExist, '| COOKIES_B64 set:', !!process.env.YOUTUBE_COOKIES_B64, '| COOKIES set:', !!process.env.YOUTUBE_COOKIES);
+  if (cookiesExist) args.push('--cookies', COOKIES_PATH);
   args.push(`https://www.youtube.com/watch?v=${youtubeId}`);
 
   const url = (await yt.execPromise(args)).trim();
