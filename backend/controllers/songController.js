@@ -12,6 +12,26 @@ const BIN_PATH = path.join('/tmp', process.platform === 'win32' ? 'yt-dlp.exe' :
 
 let ytDlp = null;
 
+// Cache stream URLs — YouTube URLs expire in ~6h, so we use 5h TTL
+const urlCache = new Map(); // youtubeId → { url, expiresAt }
+const CACHE_TTL_MS = 5 * 60 * 60 * 1000;
+
+async function getStreamUrl(youtubeId) {
+  const cached = urlCache.get(youtubeId);
+  if (cached && Date.now() < cached.expiresAt) return cached.url;
+
+  const yt = await getYtDlp();
+  const url = (await yt.execPromise([
+    '-f', 'bestaudio/best',
+    '--get-url',
+    `https://www.youtube.com/watch?v=${youtubeId}`,
+  ])).trim();
+
+  if (!url) throw new Error('No stream URL returned');
+  urlCache.set(youtubeId, { url, expiresAt: Date.now() + CACHE_TTL_MS });
+  return url;
+}
+
 async function getYtDlp() {
   if (ytDlp) return ytDlp;
   if (!fs.existsSync(BIN_PATH)) {
@@ -152,18 +172,25 @@ export const streamSong = async (req, res) => {
     const song = await Song.findById(req.params.id);
     if (!song) return res.status(404).json({ message: 'Song not found' });
 
-    const yt = await getYtDlp();
-    const ytUrl = `https://www.youtube.com/watch?v=${song.youtubeId}`;
+    const streamUrl = await getStreamUrl(song.youtubeId);
 
-    const streamUrl = (await yt.execPromise([
-      '-f', 'bestaudio/best',
-      '--get-url',
-      ytUrl,
-    ])).trim();
+    // Forward Range header so seeking works
+    const headers = {};
+    if (req.headers.range) headers['Range'] = req.headers.range;
 
-    if (!streamUrl) throw new Error('No stream URL returned');
+    const upstream = await fetch(streamUrl, { headers });
 
-    res.redirect(302, streamUrl);
+    res.status(upstream.status);
+    const ct = upstream.headers.get('content-type');
+    const cl = upstream.headers.get('content-length');
+    const cr = upstream.headers.get('content-range');
+    if (ct) res.setHeader('Content-Type', ct);
+    if (cl) res.setHeader('Content-Length', cl);
+    if (cr) res.setHeader('Content-Range', cr);
+    res.setHeader('Accept-Ranges', 'bytes');
+
+    const { Readable } = await import('stream');
+    Readable.fromWeb(upstream.body).pipe(res);
   } catch (err) {
     console.error('Stream error:', err.message);
     if (!res.headersSent) res.status(500).json({ message: 'Failed to stream song' });
