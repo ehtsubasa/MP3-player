@@ -11,6 +11,7 @@ import Signup from './pages/authentication/Signup';
 import Playlist from './pages/main/Playlist';
 import Playing from './pages/main/Playing';
 import Search from './pages/main/Search';
+import PlaylistDetail from './pages/main/PlaylistDetail';
 
 function PersistentAudio() {
   const { audioRef, currentSong, isLooping, playNext } = usePlayer();
@@ -48,6 +49,7 @@ function App() {
       <Route path='/login'  element={authUser ? <Navigate to='/' /> : <Login />} />
       <Route path='/signup' element={authUser ? <Navigate to='/' /> : <Signup/>} />
       <Route path='/playlist' element={authUser ? <Playlist /> : <Navigate to='/login' /> } />
+      <Route path='/playlist/:id' element={authUser ? <PlaylistDetail /> : <Navigate to='/login' />} />
       <Route path='/playing' element={authUser ? <Playing /> : <Navigate to='/login' /> } />
       <Route path='/search' element={authUser ? <Search /> : <Navigate to='/login' /> } />
     </Routes>
