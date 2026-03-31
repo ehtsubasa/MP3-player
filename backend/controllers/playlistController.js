@@ -14,7 +14,9 @@ import Playlist from '../models/playlistModel.js';
  */
 export const getPlaylists = async (req, res) => {
   try {
-    const playlists = await Playlist.find({ ownerId: req.user._id }).sort({ createdAt: -1 });
+    const playlists = await Playlist.find({ ownerId: req.user._id })
+      .populate('songs', 'title thumbnailUrl')
+      .sort({ createdAt: -1 });
     res.json(playlists);
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch playlists' });
@@ -40,8 +42,7 @@ export const getPlaylist = async (req, res) => {
   try {
     const playlist = await Playlist.findById(req.params.id).populate('songs');
     if (!playlist) return res.status(404).json({ message: 'Playlist not found' });
-    if (playlist.ownerId.toString() !== req.user._id.toString())
-      return res.status(403).json({ message: 'Not your playlist' });
+    // removed ownership check — sisters can view each other's playlists
     res.json(playlist);
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch playlist' });
@@ -210,5 +211,16 @@ export const removeSongFromPlaylist = async (req, res) => {
   } 
   catch (err) {
     res.status(500).json({ message: 'Failed to remove song from playlist' });
+  }
+};
+
+export const getAllPlaylists = async (req, res) => {
+  try {
+    const playlists = await Playlist.find()
+      .populate('songs', 'title thumbnailUrl')
+      .sort({ createdAt: -1 });
+    res.json(playlists);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch playlists' });
   }
 };

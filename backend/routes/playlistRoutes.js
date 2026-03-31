@@ -3,7 +3,8 @@ import express from 'express';
 import {
   getPlaylists, getPlaylist,
   createPlaylist, renamePlaylist, deletePlaylist,
-  addSongToPlaylist, removeSongFromPlaylist
+  addSongToPlaylist, removeSongFromPlaylist,
+  getAllPlaylists
 } from '../controllers/playlistController.js';
 import protectRoute from "../middleware/protectRoute.js";;
 
@@ -12,6 +13,7 @@ const router = express.Router();
 router.use(protectRoute);
 
 router.get('/',                             getPlaylists);
+router.get('/all',                          getAllPlaylists);
 router.get('/:id',                          getPlaylist);
 router.post('/',                            createPlaylist);
 router.patch('/:id',                        renamePlaylist);

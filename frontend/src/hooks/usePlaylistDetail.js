@@ -57,7 +57,29 @@ const usePlaylistDetail = (id) => {
     }
   };
 
-  return { playlist, loading, rename, deletePlaylist };
+  // adds multiple songs sequentially, updates local state once done
+  const addSongs = async (songIds) => {
+    try {
+      await Promise.all(songIds.map(songId =>
+        fetch(`/api/playlists/${id}/songs`, {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ songId }),
+        })
+      ));
+      // re-fetch to get updated populated songs
+      const res = await fetch(`/api/playlists/${id}`, { credentials: 'include' });
+      const updated = await res.json();
+      setPlaylist(updated);
+      toast.success(`${songIds.length} song${songIds.length > 1 ? 's' : ''} added`);
+      return true;
+    } catch {
+      toast.error('Failed to add songs');
+      return false;
+    }
+  };
+
+  return { playlist, loading, rename, deletePlaylist, addSongs };
 };
 
 export default usePlaylistDetail;

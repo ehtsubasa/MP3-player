@@ -2,14 +2,15 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 
-const usePlaylists = () => {
+const usePlaylists = (showAll = false) => {
   const [playlists, setPlaylists] = useState([]);
   const [loading,   setLoading]   = useState(true);
 
   useEffect(() => {
     const fetch_ = async () => {
       try {
-        const res = await fetch('/api/playlists', { credentials: 'include' });
+        const url = showAll ? '/api/playlists/all' : '/api/playlists';
+        const res = await fetch(url, { credentials: 'include' });
         const data = await res.json();
         setPlaylists(data);
       } catch {
@@ -19,7 +20,7 @@ const usePlaylists = () => {
       }
     };
     fetch_();
-  }, []);
+  }, [showAll]);
 
   const createPlaylist = async (name) => {
     try {
