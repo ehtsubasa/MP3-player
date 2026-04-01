@@ -29,15 +29,26 @@ export const PlayerContextProvider = ({ children }) => {
   const currentSong = currentQueue[currentIndex] || null;
 
   const playNext = () => {
-    if (currentIndex < currentQueue.length - 1)
+    if (currentQueue.length === 0) return;
+
+    if (currentIndex < currentQueue.length - 1) {
       setCurrentIndex(i => i + 1);
-    else setCurrentIndex(0);
+      setIsPlaying(true);
+      return;
+    }
+
+    setCurrentIndex(0);
+    setIsPlaying(true);
   };
 
   const playPrev = () => {
+    if (currentQueue.length === 0) return;
+
     if (currentIndex > 0)
       setCurrentIndex(i => i - 1);
     else setCurrentIndex(currentQueue.length - 1);
+
+    setIsPlaying(true);
   };
 
   return (

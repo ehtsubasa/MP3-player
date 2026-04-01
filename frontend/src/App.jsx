@@ -22,6 +22,7 @@ function PersistentAudio() {
       ref={audioRef}
       key={currentSong._id}
       src={streamUrl}
+      preload='auto'
       loop={isLooping}
       onEnded={!isLooping ? playNext : undefined}
       className='hidden'

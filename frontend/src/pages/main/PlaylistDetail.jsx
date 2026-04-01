@@ -3,12 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import BottomNav from '../../components/BottomNav';
 import usePlaylistDetail from '../../hooks/usePlaylistDetail';
 import AddSongsSheet from '../../components/AddSongsSheet';
+import { usePlayer } from '../../context/PlayerContext';
 
 
 const PlaylistDetail = () => {
   const { id }       = useParams();
   const navigate     = useNavigate();
   const { playlist, loading, rename, deletePlaylist, addSongs } = usePlaylistDetail(id);
+  const { playSong, currentSong, currentQueue } = usePlayer();
 
   const [editMode,   setEditMode]   = useState(false);
   const [editName,   setEditName]   = useState('');
@@ -41,6 +43,14 @@ const PlaylistDetail = () => {
   const handleAddSongs = async (songIds) => {
     const ok = await addSongs(songIds);
     if (ok) setShowPicker(false);
+  };
+
+  const handleSongClick = (index) => {
+    const songs = playlist?.songs || [];
+    if (songs.length === 0) return;
+
+    playSong(songs, index, playlist.name);
+    navigate('/playing');
   };
 
   if (loading) {
@@ -193,9 +203,10 @@ const PlaylistDetail = () => {
       {/* song list */}
       {playlist.songs?.length > 0 && (
         <ul className='mt-4'>
-          {playlist.songs.map(song => (
+          {playlist.songs.map((song, index) => (
             <li key={song._id}
-              className='flex items-center gap-3 px-4 py-3 border-b border-gray-800'>
+              onClick={() => handleSongClick(index)}
+              className='flex items-center gap-3 px-4 py-3 border-b border-gray-800 cursor-pointer active:bg-gray-900'>
               <div className='w-12 h-12 flex-shrink-0 bg-gray-800 rounded overflow-hidden'>
                 <img src={song.thumbnailUrl} alt={song.title}
                   className='w-full h-full object-cover' />
@@ -203,6 +214,9 @@ const PlaylistDetail = () => {
               <div className='flex-1 min-w-0'>
                 <p className='text-white text-sm font-medium truncate'>{song.title}</p>
               </div>
+              {currentSong?._id === song._id && currentQueue[currentQueue.length - 1]?._id === playlist.songs[playlist.songs.length - 1]?._id && (
+                <span className='text-orange-500 text-xs font-medium'>Playing</span>
+              )}
             </li>
           ))}
         </ul>

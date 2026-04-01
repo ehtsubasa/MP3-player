@@ -14,6 +14,9 @@ const usePlayerControls = () => {
 
   // stream URL points directly to the proxy endpoint — no fetch needed
   const streamUrl = currentSong ? `/api/songs/${currentSong._id}/stream` : null;
+  const nextSong = currentQueue.length > 1
+    ? currentQueue[(currentIndex + 1) % currentQueue.length]
+    : null;
 
   // play / pause native audio
   useEffect(() => {
@@ -25,6 +28,18 @@ const usePlayerControls = () => {
       audio.pause();
     }
   }, [isPlaying, streamUrl]);
+
+  // Ask the backend to resolve stream URLs before playback needs them.
+  useEffect(() => {
+    const songIds = [currentSong?._id, nextSong?._id].filter(Boolean);
+    if (songIds.length === 0) return;
+
+    songIds.forEach((songId) => {
+      fetch(`/api/songs/${songId}/prepare-stream`, {
+        credentials: 'include',
+      }).catch(() => {});
+    });
+  }, [currentSong?._id, nextSong?._id]);
 
   // lock screen controls
   useEffect(() => {
@@ -71,8 +86,8 @@ const usePlayerControls = () => {
     return () => document.removeEventListener('visibilitychange', handle);
   }, [isPlaying]);
 
-  const hasPrev    = currentIndex > 0;
-  const hasNext    = currentIndex < currentQueue.length - 1;
+  const hasPrev    = currentQueue.length > 1;
+  const hasNext    = currentQueue.length > 1;
   const togglePlay = () => setIsPlaying(p => !p);
   const toggleLoop = () => setIsLooping(l => !l);
 

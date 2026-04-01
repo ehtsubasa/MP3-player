@@ -17,6 +17,7 @@ let ytDlp = null;
 
 // cache stream URLs — YouTube URLs expire ~6h, use 5h TTL
 const urlCache = new Map();
+const pendingUrlResolutions = new Map();
 const CACHE_TTL_MS = 5 * 60 * 60 * 1000;
 
 async function getYtDlp() {
@@ -34,6 +35,10 @@ async function getStreamUrl(youtubeId) {
   const cached = urlCache.get(youtubeId);
   if (cached && Date.now() < cached.expiresAt) return cached.url;
 
+  const pending = pendingUrlResolutions.get(youtubeId);
+  if (pending) return pending;
+
+  const resolveUrl = async () => {
   const yt = await getYtDlp();
 
   const args = [
@@ -57,6 +62,14 @@ async function getStreamUrl(youtubeId) {
 
   urlCache.set(youtubeId, { url, expiresAt: Date.now() + CACHE_TTL_MS });
   return url;
+  };
+
+  const promise = resolveUrl().finally(() => {
+    pendingUrlResolutions.delete(youtubeId);
+  });
+
+  pendingUrlResolutions.set(youtubeId, promise);
+  return promise;
 }
 
 // warm up yt-dlp on startup — downloads binary if missing
@@ -125,6 +138,19 @@ export const deleteSong = async (req, res) => {
     res.json({ message: 'Song deleted' });
   } catch (err) {
     res.status(500).json({ message: 'Failed to delete song' });
+  }
+};
+
+export const prepareSongStream = async (req, res) => {
+  try {
+    const song = await Song.findById(req.params.id).select('youtubeId');
+    if (!song) return res.status(404).json({ message: 'Song not found' });
+
+    await getStreamUrl(song.youtubeId);
+    res.json({ ready: true });
+  } catch (err) {
+    console.error('Prepare stream error:', err.message);
+    res.status(500).json({ message: 'Failed to prepare stream' });
   }
 };
 

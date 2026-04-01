@@ -62,10 +62,13 @@ const useSearchSong = (existingSongs) => {
         body:        JSON.stringify({ url: `https://www.youtube.com/watch?v=${result.youtubeId}` }),
       });
       if (!res.ok) throw new Error('Failed to add song');
+      const song = await res.json();
       // mark as exists so button switches to checkmark
       setResult(r => ({ ...r, exists: true }));
+      return song;
     } catch (err) {
       setSearchError(err.message);
+      return null;
     } finally {
       setAdding(false);
     }
