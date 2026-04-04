@@ -20,7 +20,6 @@ function PersistentAudio() {
   return (
     <audio
       ref={audioRef}
-      key={currentSong._id}
       src={streamUrl}
       preload='auto'
       loop={isLooping}

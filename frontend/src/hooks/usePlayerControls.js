@@ -18,6 +18,19 @@ const usePlayerControls = () => {
     ? currentQueue[(currentIndex + 1) % currentQueue.length]
     : null;
 
+  // Keep a single audio element alive so background playback can advance
+  // without relying on autoplay for a newly-mounted media element.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !streamUrl) return;
+
+    audio.load();
+
+    if (isPlaying) {
+      audio.play().catch(err => console.log('Play failed:', err));
+    }
+  }, [streamUrl]);
+
   // play / pause native audio
   useEffect(() => {
     const audio = audioRef.current;
