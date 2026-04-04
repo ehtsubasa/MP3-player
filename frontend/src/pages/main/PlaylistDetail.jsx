@@ -4,6 +4,7 @@ import BottomNav from '../../components/BottomNav';
 import usePlaylistDetail from '../../hooks/usePlaylistDetail';
 import AddSongsSheet from '../../components/AddSongsSheet';
 import { usePlayer } from '../../context/PlayerContext';
+import { useAuthContext } from '../../context/AuthContext';
 
 
 const PlaylistDetail = () => {
@@ -11,6 +12,7 @@ const PlaylistDetail = () => {
   const navigate     = useNavigate();
   const { playlist, loading, rename, deletePlaylist, addSongs } = usePlaylistDetail(id);
   const { playSong, currentSong, currentQueue } = usePlayer();
+  const { authUser } = useAuthContext();
 
   const [editMode,   setEditMode]   = useState(false);
   const [editName,   setEditName]   = useState('');
@@ -75,6 +77,11 @@ const PlaylistDetail = () => {
   const playlistSongIds = (playlist.songs || []).map(s =>
     typeof s === 'object' ? s._id : s
   );
+  const ownerId = typeof playlist.ownerId === 'object'
+    ? playlist.ownerId?._id
+    : playlist.ownerId;
+  const currentUserId = authUser?._id || authUser?.id;
+  const isOwner = ownerId?.toString() === currentUserId?.toString();
 
   return (
     <div className='bg-black min-h-screen text-white flex flex-col pb-20'>
@@ -115,7 +122,7 @@ const PlaylistDetail = () => {
 
       {/* name — inline edit or display */}
       <div className='text-center mt-4 px-4'>
-        {editMode ? (
+        {editMode && isOwner ? (
           <div className='flex items-center justify-center gap-2'>
             <input
               autoFocus
@@ -142,17 +149,23 @@ const PlaylistDetail = () => {
             month: 'short', day: 'numeric', year: 'numeric'
           })} · {playlist.songs?.length || 0} tracks
         </p>
+        {!isOwner && (
+          <p className='text-gray-600 text-xs mt-2'>
+            View only. Only the playlist owner can add, rename, or delete tracks here.
+          </p>
+        )}
       </div>
 
       {/* action buttons */}
       <div className='flex justify-center gap-8 mt-6'>
 
         {/* add songs */}
-        <button onClick={() => setShowPicker(true)}
-            className='flex flex-col items-center gap-1'>
-            <div className='w-12 h-12 rounded-full bg-orange-800 bg-opacity-60
-              flex items-center justify-center'>
-              <svg xmlns='http://www.w3.org/2000/svg' className='w-6 h-6 text-orange-400'
+        <button
+            onClick={() => isOwner && setShowPicker(true)}
+            disabled={!isOwner}
+            className='flex flex-col items-center gap-1 disabled:cursor-not-allowed'>
+            <div className={`w-12 h-12 rounded-full ${isOwner ? 'bg-orange-800 bg-opacity-60' : 'bg-gray-900'} flex items-center justify-center`}>
+              <svg xmlns='http://www.w3.org/2000/svg' className={`w-6 h-6 ${isOwner ? 'text-orange-400' : 'text-gray-600'}`}
                 fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}>
                 <path strokeLinecap='round' strokeLinejoin='round' d='M12 4.5v15m7.5-7.5h-15' />
               </svg>
@@ -160,11 +173,12 @@ const PlaylistDetail = () => {
         </button>  
 
         {/* rename */}
-        <button onClick={handleRenameOpen}
-          className='flex flex-col items-center gap-1'>
-          <div className='w-12 h-12 rounded-full bg-orange-800 bg-opacity-60
-            flex items-center justify-center'>
-            <svg xmlns='http://www.w3.org/2000/svg' className='w-5 h-5 text-orange-400'
+        <button
+          onClick={() => isOwner && handleRenameOpen()}
+          disabled={!isOwner}
+          className='flex flex-col items-center gap-1 disabled:cursor-not-allowed'>
+          <div className={`w-12 h-12 rounded-full ${isOwner ? 'bg-orange-800 bg-opacity-60' : 'bg-gray-900'} flex items-center justify-center`}>
+            <svg xmlns='http://www.w3.org/2000/svg' className={`w-5 h-5 ${isOwner ? 'text-orange-400' : 'text-gray-600'}`}
               fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}>
               <path strokeLinecap='round' strokeLinejoin='round'
                 d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125' />
@@ -173,11 +187,12 @@ const PlaylistDetail = () => {
         </button>
 
         {/* delete */}
-        <button onClick={() => setConfirmDel(true)}
-          className='flex flex-col items-center gap-1'>
-          <div className='w-12 h-12 rounded-full bg-orange-800 bg-opacity-60
-            flex items-center justify-center'>
-            <svg xmlns='http://www.w3.org/2000/svg' className='w-5 h-5 text-orange-400'
+        <button
+          onClick={() => isOwner && setConfirmDel(true)}
+          disabled={!isOwner}
+          className='flex flex-col items-center gap-1 disabled:cursor-not-allowed'>
+          <div className={`w-12 h-12 rounded-full ${isOwner ? 'bg-orange-800 bg-opacity-60' : 'bg-gray-900'} flex items-center justify-center`}>
+            <svg xmlns='http://www.w3.org/2000/svg' className={`w-5 h-5 ${isOwner ? 'text-orange-400' : 'text-gray-600'}`}
               fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}>
               <path strokeLinecap='round' strokeLinejoin='round'
                 d='M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0' />
@@ -191,10 +206,16 @@ const PlaylistDetail = () => {
       {playlist.songs?.length === 0 && (
         <div className='flex flex-col items-center justify-center mt-16 px-8 gap-4'>
           <p className='text-gray-500 text-sm text-center'>
-            Add tracks to this playlist from your library.
+            {isOwner ? 'Add tracks to this playlist from your library.' : 'This playlist is view only.'}
           </p>
-          <button className='px-8 py-3 rounded-full border border-orange-500
-            text-orange-500 text-sm font-medium active:opacity-70'>
+          <button
+            onClick={() => isOwner && setShowPicker(true)}
+            disabled={!isOwner}
+            className={`px-8 py-3 rounded-full border text-sm font-medium ${
+              isOwner
+                ? 'border-orange-500 text-orange-500 active:opacity-70'
+                : 'border-gray-800 text-gray-600 cursor-not-allowed'
+            }`}>
             Add Tracks
           </button>
         </div>
@@ -223,7 +244,7 @@ const PlaylistDetail = () => {
       )}
 
       {/* delete confirmation overlay */}
-      {confirmDel && (
+      {confirmDel && isOwner && (
         <div className='fixed inset-0 z-50 bg-black bg-opacity-80
           flex items-center justify-center px-8'>
           <div className='bg-gray-900 rounded-2xl p-6 w-full max-w-sm'>
@@ -252,7 +273,7 @@ const PlaylistDetail = () => {
       <BottomNav />
 
       {/* add songs sheet — full screen overlay */}
-      {showPicker && (
+      {showPicker && isOwner && (
         <AddSongsSheet
           playlistSongIds={playlistSongIds}
           onClose={() => setShowPicker(false)}

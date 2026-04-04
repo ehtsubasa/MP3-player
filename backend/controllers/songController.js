@@ -165,6 +165,9 @@ export const streamSong = async (req, res) => {
     if (req.headers.range) headers['Range'] = req.headers.range;
 
     const upstream = await fetch(streamUrl, { headers });
+    if (!upstream.ok || !upstream.body) {
+      return res.status(502).json({ message: 'Upstream audio stream unavailable' });
+    }
 
     res.status(upstream.status);
     const ct = upstream.headers.get('content-type');
@@ -175,8 +178,29 @@ export const streamSong = async (req, res) => {
     if (cr) res.setHeader('Content-Range', cr);
     res.setHeader('Accept-Ranges', 'bytes');
 
-    const { Readable } = await import('stream');
-    Readable.fromWeb(upstream.body).pipe(res);
+    const { Readable, pipeline } = await import('stream');
+    const nodeStream = Readable.fromWeb(upstream.body);
+
+    nodeStream.on('error', (err) => {
+      console.error('Upstream stream error:', err.message);
+      if (!res.headersSent) {
+        res.status(502).json({ message: 'Audio stream interrupted' });
+      } else if (!res.destroyed) {
+        res.destroy();
+      }
+    });
+
+    req.on('close', () => {
+      if (!nodeStream.destroyed) nodeStream.destroy();
+    });
+
+    pipeline(nodeStream, res, (err) => {
+      if (!err || err.code === 'ERR_STREAM_PREMATURE_CLOSE') return;
+      console.error('Pipeline error:', err.message);
+      if (!res.headersSent) {
+        res.status(502).json({ message: 'Failed to stream song' });
+      }
+    });
   } catch (err) {
     console.error('Stream error:', err.message);
     if (!res.headersSent) res.status(500).json({ message: 'Failed to stream song' });
