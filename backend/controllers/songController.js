@@ -45,6 +45,8 @@ async function getStreamUrl(youtubeId) {
     '--no-playlist',
     '--get-url',
     '-f', 'bestaudio/best',
+    '--js-runtimes', 'node',
+    '--remote-components', 'ejs:github',
   ];
 
   // use cookies.txt if it exists in project root
